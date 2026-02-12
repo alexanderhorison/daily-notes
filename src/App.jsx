@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  SignIn,
   SignedIn,
   SignedOut,
-  SignInButton,
-  SignUpButton,
   UserButton,
   useAuth,
 } from "@clerk/clerk-react";
@@ -332,22 +331,7 @@ function TaskRow({
 function SignedOutView() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_10%_8%,#dbeafe_0%,transparent_32%),radial-gradient(circle_at_90%_12%,#fce7f3_0%,transparent_28%),#f8fafc] p-4">
-      <Card className="w-full max-w-lg border-slate-200/90 bg-white/95 shadow-xl shadow-slate-900/5">
-        <CardHeader>
-          <CardTitle className="text-2xl">Today Reminders</CardTitle>
-          <CardDescription>
-            Sign in to manage your reminders with Clerk authentication and Supabase sync.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <SignInButton mode="modal">
-            <Button>Sign in</Button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <Button variant="outline">Create account</Button>
-          </SignUpButton>
-        </CardContent>
-      </Card>
+      <SignIn routing="virtual" />
     </div>
   );
 }
