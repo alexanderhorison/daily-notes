@@ -92,17 +92,18 @@ Open:
 Build and run:
 
 ```bash
-docker compose up --build
+docker network create tunnel || true
+docker compose up --build -d
 ```
 
 Open:
 
-- [http://127.0.0.1:5173](http://127.0.0.1:5173)
+- [http://127.0.0.1:8003](http://127.0.0.1:8003) (or your `APP_PORT`)
 
 Files:
 - `Dockerfile`
 - `docker-compose.yml`
-- `docker/nginx.conf`
+- `docker/nginx.conf.template`
 
 ## 6) Connect to GitHub
 

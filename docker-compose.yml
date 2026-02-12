@@ -5,9 +5,21 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+        VITE_CLERK_JWT_TEMPLATE: ${VITE_CLERK_JWT_TEMPLATE}
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
-    ports:
-      - "5173:80"
+    container_name: daily-notes-app
     restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8003}:${APP_PORT:-8003}"
+    expose:
+      - "${APP_PORT:-8003}"
+    environment:
+      - APP_PORT=${APP_PORT:-8003}
+    networks:
+      - tunnel
+
+networks:
+  tunnel:
+    external: true
