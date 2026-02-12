@@ -37,7 +37,8 @@ Set values in `.env`:
 - `VITE_CLERK_PUBLISHABLE_KEY`
 - `VITE_CLERK_JWT_TEMPLATE` (optional, legacy fallback)
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (recommended)
+- `VITE_SUPABASE_ANON_KEY` (legacy fallback)
 
 ## 2) Clerk + Supabase Auth Setup
 
@@ -51,7 +52,7 @@ Set values in `.env`:
 
 1. Create a Supabase project.
 2. In Supabase Auth settings, enable Clerk as third-party auth (set your Clerk domain).
-3. Use project URL + anon key in `.env`.
+3. Use project URL + publishable key in `.env`.
 
 ## 3) Database Migrations
 
@@ -132,6 +133,7 @@ Set these repository secrets so CI can build:
 
 - `VITE_CLERK_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_ANON_KEY`
 
 Then CI runs `npm ci` and `npm run build` on pushes and pull requests.

@@ -1,17 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const clerkJwtTemplate = import.meta.env.VITE_CLERK_JWT_TEMPLATE || "supabase";
+const supabaseClientKey = supabasePublishableKey || supabaseAnonKey;
 
-export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
+export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseClientKey);
 
 export function createClerkSupabaseClient(getToken) {
   if (!hasSupabaseEnv) {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(supabaseUrl, supabaseClientKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

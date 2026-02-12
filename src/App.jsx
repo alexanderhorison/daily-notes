@@ -779,7 +779,8 @@ function SignedInView() {
         {!hasSupabaseEnv ? (
           <Card className="mb-4 border-amber-200 bg-amber-50">
             <CardContent className="pt-6 text-sm text-amber-800">
-              Supabase env vars are missing. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+              Supabase env vars are missing. Set <code>VITE_SUPABASE_URL</code> and{" "}
+              <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> (or legacy <code>VITE_SUPABASE_ANON_KEY</code>).
             </CardContent>
           </Card>
         ) : null}
