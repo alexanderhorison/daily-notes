@@ -24,17 +24,17 @@ export function createClerkSupabaseClient(getToken) {
         const headers = new Headers(init.headers);
         let token = null;
 
-        // Preferred path: Clerk native session token with Supabase third-party auth.
-        // Legacy fallback: explicit JWT template.
+        // Prefer explicit template for broad compatibility.
+        // Fall back to native Clerk session token for Supabase third-party auth setups.
         try {
-          token = await getToken();
+          token = await getToken({ template: clerkJwtTemplate });
         } catch {
           token = null;
         }
 
         if (!token) {
           try {
-            token = await getToken({ template: clerkJwtTemplate });
+            token = await getToken();
           } catch {
             token = null;
           }
