@@ -20,7 +20,23 @@ export function createClerkSupabaseClient(getToken) {
     global: {
       fetch: async (input, init = {}) => {
         const headers = new Headers(init.headers);
-        const token = await getToken({ template: clerkJwtTemplate });
+        let token = null;
+
+        // Preferred path: Clerk native session token with Supabase third-party auth.
+        // Legacy fallback: explicit JWT template.
+        try {
+          token = await getToken();
+        } catch {
+          token = null;
+        }
+
+        if (!token) {
+          try {
+            token = await getToken({ template: clerkJwtTemplate });
+          } catch {
+            token = null;
+          }
+        }
 
         if (token) {
           headers.set("Authorization", `Bearer ${token}`);

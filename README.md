@@ -35,7 +35,7 @@ cp .env.example .env
 Set values in `.env`:
 
 - `VITE_CLERK_PUBLISHABLE_KEY`
-- `VITE_CLERK_JWT_TEMPLATE` (default: `supabase`)
+- `VITE_CLERK_JWT_TEMPLATE` (optional, legacy fallback)
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
@@ -44,8 +44,8 @@ Set values in `.env`:
 ### Clerk
 
 1. Create your Clerk application.
-2. In Clerk Dashboard, create a JWT template (name it `supabase`, or set `VITE_CLERK_JWT_TEMPLATE` to your template name).
-3. Set `aud` to `authenticated` in that template.
+2. Enable Supabase integration in Clerk and Supabase third-party auth.
+3. Optional legacy path: create a JWT template and set `VITE_CLERK_JWT_TEMPLATE`.
 
 ### Supabase
 
