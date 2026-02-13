@@ -22,14 +22,16 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
+ARG PORT=8003
+
 RUN apk add --no-cache curl
 
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
-ENV APP_PORT=8003
+ENV APP_PORT=${PORT}
 
-EXPOSE 8003
+EXPOSE ${PORT}
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:${APP_PORT}/ || exit 1

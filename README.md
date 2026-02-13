@@ -10,10 +10,11 @@ This version is configured for:
 
 ## Tech Stack
 
-- Frontend: React, Vite, Tailwind CSS
+- Frontend: React, Vite, Tailwind CSS, TypeScript (strict)
 - UI: shadcn-style components + Radix primitives
 - Auth: Clerk (`@clerk/clerk-react`)
 - Backend data: Supabase (`@supabase/supabase-js`)
+- Validation: Zod (`zod`)
 
 ## Features
 
@@ -21,8 +22,10 @@ This version is configured for:
 - Date presets: Today, Tomorrow, Next Month, custom date
 - Priority and reminder time
 - Edit tasks
+- Zod-validated add/edit form with field-level errors
 - Mobile swipe-to-delete + delete confirmation
 - Responsive quick-add modal on mobile
+- PWA installable (Add to Home Screen) with custom app icon
 
 ## 1) Environment Setup
 
@@ -80,6 +83,7 @@ The migration creates:
 
 ```bash
 npm install
+npm run typecheck
 npm run dev
 ```
 
@@ -87,7 +91,20 @@ Open:
 
 - [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
-## 5) Docker
+To test from phone on same Wi-Fi:
+
+```bash
+npm run dev -- --host
+```
+
+## 5) Install as Mobile App (PWA)
+
+- Android (Chrome): open app URL, tap menu, choose **Install app** / **Add to Home screen**.
+- iPhone (Safari): open app URL, tap **Share**, choose **Add to Home Screen**.
+- Production note: PWA install requires HTTPS in production (localhost is allowed for development).
+- PWA assets are configured in `vite.config.js` using `vite-plugin-pwa`, with icons in `public/icons/`.
+
+## 6) Docker
 
 Build and run:
 
@@ -98,14 +115,18 @@ docker compose up --build -d
 
 Open:
 
-- [http://127.0.0.1:8003](http://127.0.0.1:8003) (or your `APP_PORT`)
+- [http://127.0.0.1:8003](http://127.0.0.1:8003) (or your `PORT`)
 
 Files:
 - `Dockerfile`
 - `docker-compose.yml`
 - `docker/nginx.conf.template`
 
-## 6) Connect to GitHub
+Docker env values:
+- `CONTAINER_NAME` (image + container name)
+- `PORT` (host and container port)
+
+## 7) Connect to GitHub
 
 ### Option A: Use helper script
 
@@ -127,7 +148,7 @@ git branch -M main
 git push -u origin main
 ```
 
-## 7) GitHub CI
+## 8) GitHub CI
 
 Workflow:
 

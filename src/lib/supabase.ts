@@ -1,4 +1,26 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+export type Priority = "low" | "medium" | "high";
+
+export interface DbTaskRow {
+  id: string;
+  clerk_user_id: string;
+  title: string;
+  notes: string | null;
+  due_date: string;
+  reminder_at: string | null;
+  priority: Priority;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+type TokenOptions = {
+  template?: string;
+  skipCache?: boolean;
+};
+
+type ClerkTokenGetter = (options?: TokenOptions) => Promise<string | null>;
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -8,8 +30,10 @@ const supabaseClientKey = supabasePublishableKey || supabaseAnonKey;
 
 export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseClientKey);
 
-export function createClerkSupabaseClient(getToken) {
-  if (!hasSupabaseEnv) {
+export type AppSupabaseClient = SupabaseClient;
+
+export function createClerkSupabaseClient(getToken: ClerkTokenGetter): AppSupabaseClient | null {
+  if (!hasSupabaseEnv || !supabaseUrl || !supabaseClientKey) {
     return null;
   }
 
@@ -20,12 +44,10 @@ export function createClerkSupabaseClient(getToken) {
       detectSessionInUrl: false,
     },
     global: {
-      fetch: async (input, init = {}) => {
+      fetch: async (input: RequestInfo | URL, init: RequestInit = {}) => {
         const headers = new Headers(init.headers);
-        let token = null;
+        let token: string | null = null;
 
-        // Only use the named Clerk JWT template for Supabase.
-        // Avoid raw session tokens because Supabase may reject their key type.
         try {
           token = await getToken({ template: clerkJwtTemplate, skipCache: true });
         } catch {

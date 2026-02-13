@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  SignIn,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useAuth,
-} from "@clerk/clerk-react";
+import { type FormEvent, type TouchEvent, useEffect, useMemo, useRef, useState } from "react";
+import { SignIn, SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import { CalendarDays, Loader2, PenLine, Plus, Trash2, X } from "lucide-react";
+import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,23 +11,87 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createClerkSupabaseClient, hasSupabaseEnv } from "@/lib/supabase";
+import {
+  createClerkSupabaseClient,
+  hasSupabaseEnv,
+  type DbTaskRow,
+  type Priority,
+} from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
-const priorityRank = {
+type DatePreset = "today" | "tomorrow" | "next-month" | "custom";
+
+type Task = {
+  id: string;
+  title: string;
+  notes: string;
+  dueDate: string;
+  reminderAt: string;
+  priority: Priority;
+  completed: boolean;
+  createdAt: string;
+};
+
+type FormErrors = Partial<Record<"title" | "dueDate" | "reminderAt" | "notes", string>>;
+
+const priorityRank: Record<Priority, number> = {
   high: 0,
   medium: 1,
   low: 2,
 };
 
-function toDateOnly(date) {
+const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const taskFormSchema = z
+  .object({
+    title: z.string().trim().min(1, "Task is required").max(160, "Task title is too long"),
+    dueDate: z
+      .string()
+      .regex(dateOnlyRegex, "Choose a valid due date")
+      .refine((value) => !Number.isNaN(new Date(`${value}T12:00:00`).getTime()), "Choose a valid due date"),
+    priority: z.enum(["low", "medium", "high"]),
+    reminderAt: z
+      .string()
+      .trim()
+      .refine((value) => !value || !Number.isNaN(new Date(value).getTime()), "Reminder date is invalid"),
+    notes: z.string().trim().max(1000, "Notes are too long"),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.reminderAt) return;
+
+    const reminderTime = new Date(data.reminderAt).getTime();
+    const dueBoundary = new Date(`${data.dueDate}T23:59:59`).getTime();
+
+    if (reminderTime > dueBoundary) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reminderAt"],
+        message: "Reminder should be on or before the due date",
+      });
+    }
+  });
+
+const presetOptions: ReadonlyArray<{ value: Exclude<DatePreset, "custom">; label: string }> = [
+  { value: "today", label: "Today" },
+  { value: "tomorrow", label: "Tomorrow" },
+  { value: "next-month", label: "Next Month" },
+];
+
+const formErrorKeys = ["title", "dueDate", "reminderAt", "notes"] as const;
+type FormErrorKey = (typeof formErrorKeys)[number];
+
+function isFormErrorKey(value: string): value is FormErrorKey {
+  return formErrorKeys.includes(value as FormErrorKey);
+}
+
+function toDateOnly(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-function toDateTimeLocalValue(value) {
+function toDateTimeLocalValue(value: string | null): string {
   if (!value) return "";
 
   const date = new Date(value);
@@ -47,7 +106,7 @@ function toDateTimeLocalValue(value) {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
-function toIsoStringOrNull(value) {
+function toIsoStringOrNull(value: string): string | null {
   if (!value) return null;
 
   const date = new Date(value);
@@ -56,7 +115,7 @@ function toIsoStringOrNull(value) {
   return date.toISOString();
 }
 
-function dateForPreset(preset) {
+function dateForPreset(preset: Exclude<DatePreset, "custom">): string {
   const base = new Date();
 
   if (preset === "today") return toDateOnly(base);
@@ -66,16 +125,12 @@ function dateForPreset(preset) {
     return toDateOnly(base);
   }
 
-  if (preset === "next-month") {
-    base.setMonth(base.getMonth() + 1);
-    return toDateOnly(base);
-  }
-
-  return "";
+  base.setMonth(base.getMonth() + 1);
+  return toDateOnly(base);
 }
 
-function detectPreset(dateOnly) {
-  for (const preset of ["today", "tomorrow", "next-month"]) {
+function detectPreset(dateOnly: string): DatePreset {
+  for (const preset of presetOptions.map((item) => item.value)) {
     if (dateForPreset(preset) === dateOnly) {
       return preset;
     }
@@ -84,7 +139,7 @@ function detectPreset(dateOnly) {
   return "custom";
 }
 
-function formatFullDate(date = new Date()) {
+function formatFullDate(date: Date = new Date()): string {
   return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
@@ -93,7 +148,7 @@ function formatFullDate(date = new Date()) {
   }).format(date);
 }
 
-function formatDueDate(dateOnly) {
+function formatDueDate(dateOnly: string): string {
   const today = toDateOnly(new Date());
   const tomorrow = dateForPreset("tomorrow");
 
@@ -107,7 +162,7 @@ function formatDueDate(dateOnly) {
   }).format(new Date(`${dateOnly}T12:00:00`));
 }
 
-function formatReminder(dateTime) {
+function formatReminder(dateTime: string): string {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
@@ -116,7 +171,7 @@ function formatReminder(dateTime) {
   }).format(new Date(dateTime));
 }
 
-function sortTasks(a, b) {
+function sortTasks(a: Task, b: Task): number {
   if (a.completed !== b.completed) {
     return Number(a.completed) - Number(b.completed);
   }
@@ -128,25 +183,56 @@ function sortTasks(a, b) {
   return a.createdAt.localeCompare(b.createdAt);
 }
 
-function priorityStyle(priority) {
+function priorityStyle(priority: Priority): string {
   if (priority === "high") return "border-red-200 text-red-700 bg-red-50";
   if (priority === "medium") return "border-amber-200 text-amber-700 bg-amber-50";
 
   return "border-teal-200 text-teal-700 bg-teal-50";
 }
 
-function fromTaskRow(row) {
+function fromTaskRow(row: DbTaskRow): Task {
   return {
     id: row.id,
     title: row.title,
     notes: row.notes || "",
     dueDate: row.due_date,
-    reminderAt: row.reminder_at ? toDateTimeLocalValue(row.reminder_at) : "",
+    reminderAt: toDateTimeLocalValue(row.reminder_at),
     priority: row.priority,
     completed: row.completed,
     createdAt: row.created_at,
   };
 }
+
+function mapZodErrors(error: z.ZodError): FormErrors {
+  const next: FormErrors = {};
+
+  for (const issue of error.issues) {
+    const field = issue.path[0];
+
+    if (typeof field !== "string" || !isFormErrorKey(field) || next[field]) {
+      continue;
+    }
+
+    next[field] = issue.message;
+  }
+
+  return next;
+}
+
+function isPriority(value: string): value is Priority {
+  return value === "low" || value === "medium" || value === "high";
+}
+
+type TaskRowProps = {
+  task: Task;
+  compact?: boolean;
+  isEditing?: boolean;
+  swipeEnabled?: boolean;
+  disabled?: boolean;
+  onToggle: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+};
 
 function TaskRow({
   task,
@@ -157,7 +243,7 @@ function TaskRow({
   onToggle,
   onEdit,
   onDelete,
-}) {
+}: TaskRowProps): JSX.Element {
   const actionWidth = 96;
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -171,7 +257,7 @@ function TaskRow({
     }
   }, [swipeEnabled, swipeOffset]);
 
-  function closeSwipeIfOpen() {
+  function closeSwipeIfOpen(): boolean {
     if (swipeOffset > 0) {
       setSwipeOffset(0);
       return true;
@@ -180,7 +266,7 @@ function TaskRow({
     return false;
   }
 
-  function handleTouchStart(event) {
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>): void {
     if (!swipeEnabled || disabled) return;
 
     const touch = event.touches[0];
@@ -190,7 +276,7 @@ function TaskRow({
     setIsDragging(true);
   }
 
-  function handleTouchMove(event) {
+  function handleTouchMove(event: TouchEvent<HTMLDivElement>): void {
     if (!swipeEnabled || disabled) return;
 
     const touch = event.touches[0];
@@ -211,7 +297,7 @@ function TaskRow({
     setSwipeOffset(next);
   }
 
-  function handleTouchEnd() {
+  function handleTouchEnd(): void {
     if (!swipeEnabled || disabled) return;
 
     setIsDragging(false);
@@ -328,7 +414,7 @@ function TaskRow({
   );
 }
 
-function SignedOutView() {
+function SignedOutView(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_10%_8%,#dbeafe_0%,transparent_32%),radial-gradient(circle_at_90%_12%,#fce7f3_0%,transparent_28%),#f8fafc] p-4">
       <SignIn routing="virtual" />
@@ -336,27 +422,38 @@ function SignedOutView() {
   );
 }
 
-function SignedInView() {
+function SignedInView(): JSX.Element {
   const { userId, getToken, isLoaded } = useAuth();
 
   const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken]);
 
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [isMobile, setIsMobile] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [deleteCandidateId, setDeleteCandidateId] = useState(null);
-  const [selectedPreset, setSelectedPreset] = useState("today");
-  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<DatePreset>("today");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState(dateForPreset("today"));
-  const [priority, setPriority] = useState("medium");
+  const [priority, setPriority] = useState<Priority>("medium");
   const [reminderAt, setReminderAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  function clearFormError(field: FormErrorKey): void {
+    setFormErrors((prev) => {
+      if (!prev[field]) return prev;
+
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 1023px)");
@@ -376,6 +473,7 @@ function SignedInView() {
   useEffect(() => {
     if (selectedPreset === "custom") return;
     setDueDate(dateForPreset(selectedPreset));
+    clearFormError("dueDate");
   }, [selectedPreset]);
 
   useEffect(() => {
@@ -387,16 +485,18 @@ function SignedInView() {
   useEffect(() => {
     if (!isLoaded || !userId || !supabase) return;
 
+    const activeUserId = userId;
+    const activeSupabase = supabase;
     let active = true;
 
-    async function loadTasks() {
+    async function loadTasks(): Promise<void> {
       setIsLoadingTasks(true);
       setErrorMessage("");
 
-      const { data, error } = await supabase
+      const { data, error } = await activeSupabase
         .from("tasks")
-        .select("id, title, notes, due_date, reminder_at, priority, completed, created_at")
-        .eq("clerk_user_id", userId)
+        .select("id, clerk_user_id, title, notes, due_date, reminder_at, priority, completed, created_at, updated_at")
+        .eq("clerk_user_id", activeUserId)
         .order("due_date", { ascending: true })
         .order("created_at", { ascending: true });
 
@@ -406,13 +506,14 @@ function SignedInView() {
         setErrorMessage(error.message || "Failed to load tasks.");
         setTasks([]);
       } else {
-        setTasks((data || []).map(fromTaskRow));
+        const rows = data ?? [];
+        setTasks(rows.map(fromTaskRow));
       }
 
       setIsLoadingTasks(false);
     }
 
-    loadTasks();
+    void loadTasks();
 
     return () => {
       active = false;
@@ -421,10 +522,7 @@ function SignedInView() {
 
   const todayKey = toDateOnly(new Date());
 
-  const todayTasks = useMemo(
-    () => tasks.filter((task) => task.dueDate <= todayKey).sort(sortTasks),
-    [tasks, todayKey],
-  );
+  const todayTasks = useMemo(() => tasks.filter((task) => task.dueDate <= todayKey).sort(sortTasks), [tasks, todayKey]);
 
   const upcomingTasks = useMemo(
     () => tasks.filter((task) => task.dueDate > todayKey).sort(sortTasks).slice(0, 6),
@@ -442,7 +540,7 @@ function SignedInView() {
     }
   }, [tasks, deleteCandidateId]);
 
-  function resetForm({ closeQuickAdd = false } = {}) {
+  function resetForm({ closeQuickAdd = false }: { closeQuickAdd?: boolean } = {}): void {
     setEditingTaskId(null);
     setTitle("");
     setPriority("medium");
@@ -450,47 +548,63 @@ function SignedInView() {
     setNotes("");
     setSelectedPreset("today");
     setDueDate(dateForPreset("today"));
+    setFormErrors({});
 
     if (closeQuickAdd) {
       setIsQuickAddOpen(false);
     }
   }
 
-  function openQuickAddForCreate() {
+  function openQuickAddForCreate(): void {
     resetForm();
     setIsQuickAddOpen(true);
   }
 
-  function closeQuickAdd() {
+  function closeQuickAdd(): void {
     resetForm({ closeQuickAdd: true });
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    const cleanTitle = title.trim();
 
-    if (!cleanTitle || !userId || !supabase) return;
+    if (!userId || !supabase) return;
 
+    const parsed = taskFormSchema.safeParse({
+      title,
+      dueDate,
+      priority,
+      reminderAt,
+      notes,
+    });
+
+    if (!parsed.success) {
+      setFormErrors(mapZodErrors(parsed.error));
+      return;
+    }
+
+    setFormErrors({});
     setIsMutating(true);
     setErrorMessage("");
+
+    const payload = {
+      title: parsed.data.title,
+      due_date: parsed.data.dueDate,
+      priority: parsed.data.priority,
+      reminder_at: toIsoStringOrNull(parsed.data.reminderAt),
+      notes: parsed.data.notes || null,
+    };
 
     if (editingTaskId) {
       const { data, error } = await supabase
         .from("tasks")
-        .update({
-          title: cleanTitle,
-          due_date: dueDate,
-          priority,
-          reminder_at: toIsoStringOrNull(reminderAt),
-          notes: notes.trim(),
-        })
+        .update(payload)
         .eq("id", editingTaskId)
         .eq("clerk_user_id", userId)
-        .select("id, title, notes, due_date, reminder_at, priority, completed, created_at")
+        .select("id, clerk_user_id, title, notes, due_date, reminder_at, priority, completed, created_at, updated_at")
         .single();
 
-      if (error) {
-        setErrorMessage(error.message || "Failed to update task.");
+      if (error || !data) {
+        setErrorMessage(error?.message || "Failed to update task.");
         setIsMutating(false);
         return;
       }
@@ -501,17 +615,13 @@ function SignedInView() {
         .from("tasks")
         .insert({
           clerk_user_id: userId,
-          title: cleanTitle,
-          due_date: dueDate,
-          priority,
-          reminder_at: toIsoStringOrNull(reminderAt),
-          notes: notes.trim(),
+          ...payload,
         })
-        .select("id, title, notes, due_date, reminder_at, priority, completed, created_at")
+        .select("id, clerk_user_id, title, notes, due_date, reminder_at, priority, completed, created_at, updated_at")
         .single();
 
-      if (error) {
-        setErrorMessage(error.message || "Failed to create task.");
+      if (error || !data) {
+        setErrorMessage(error?.message || "Failed to create task.");
         setIsMutating(false);
         return;
       }
@@ -523,7 +633,7 @@ function SignedInView() {
     resetForm({ closeQuickAdd: isMobile });
   }
 
-  function startEdit(id) {
+  function startEdit(id: string): void {
     const task = tasks.find((item) => item.id === id);
     if (!task) return;
 
@@ -531,16 +641,17 @@ function SignedInView() {
     setTitle(task.title);
     setDueDate(task.dueDate);
     setPriority(task.priority);
-    setReminderAt(task.reminderAt || "");
-    setNotes(task.notes || "");
+    setReminderAt(task.reminderAt);
+    setNotes(task.notes);
     setSelectedPreset(detectPreset(task.dueDate));
+    setFormErrors({});
 
     if (isMobile) {
       setIsQuickAddOpen(true);
     }
   }
 
-  async function toggleTask(id) {
+  async function toggleTask(id: string): Promise<void> {
     if (!userId || !supabase) return;
 
     const currentTask = tasks.find((task) => task.id === id);
@@ -554,11 +665,11 @@ function SignedInView() {
       .update({ completed: !currentTask.completed })
       .eq("id", id)
       .eq("clerk_user_id", userId)
-      .select("id, title, notes, due_date, reminder_at, priority, completed, created_at")
+      .select("id, clerk_user_id, title, notes, due_date, reminder_at, priority, completed, created_at, updated_at")
       .single();
 
-    if (error) {
-      setErrorMessage(error.message || "Failed to update task status.");
+    if (error || !data) {
+      setErrorMessage(error?.message || "Failed to update task status.");
       setIsMutating(false);
       return;
     }
@@ -567,11 +678,11 @@ function SignedInView() {
     setIsMutating(false);
   }
 
-  function requestDelete(id) {
+  function requestDelete(id: string): void {
     setDeleteCandidateId(id);
   }
 
-  async function confirmDelete() {
+  async function confirmDelete(): Promise<void> {
     if (!deleteCandidateId || !userId || !supabase) return;
 
     setIsMutating(true);
@@ -594,11 +705,11 @@ function SignedInView() {
     setIsMutating(false);
   }
 
-  function cancelDelete() {
+  function cancelDelete(): void {
     setDeleteCandidateId(null);
   }
 
-  async function clearCompleted() {
+  async function clearCompleted(): Promise<void> {
     if (!userId || !supabase) return;
 
     const completedTaskIds = tasks.filter((task) => task.completed).map((task) => task.id);
@@ -623,29 +734,39 @@ function SignedInView() {
     setIsMutating(false);
   }
 
-  function renderQuickAddForm(idPrefix) {
+  function renderQuickAddForm(idPrefix: "desktop" | "mobile"): JSX.Element {
+    const titleErrorId = `${idPrefix}-title-error`;
+    const dueDateErrorId = `${idPrefix}-due-date-error`;
+    const reminderErrorId = `${idPrefix}-reminder-error`;
+    const notesErrorId = `${idPrefix}-notes-error`;
+
     return (
-      <form className="grid gap-3" onSubmit={handleSubmit}>
+      <form className="grid gap-3" onSubmit={handleSubmit} noValidate>
         <div className="grid gap-1.5">
           <Label htmlFor={`${idPrefix}-task-title`}>Task</Label>
           <Input
             id={`${idPrefix}-task-title`}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              clearFormError("title");
+            }}
             placeholder="Pay electricity bill"
-            required
+            aria-invalid={Boolean(formErrors.title)}
+            aria-describedby={formErrors.title ? titleErrorId : undefined}
             disabled={isMutating}
           />
+          {formErrors.title ? (
+            <p id={titleErrorId} className="text-xs font-medium text-red-600">
+              {formErrors.title}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-1.5">
           <Label>When</Label>
           <div className="flex flex-wrap gap-2">
-            {[
-              { value: "today", label: "Today" },
-              { value: "tomorrow", label: "Tomorrow" },
-              { value: "next-month", label: "Next Month" },
-            ].map((preset) => (
+            {presetOptions.map((preset) => (
               <Button
                 key={preset.value}
                 type="button"
@@ -664,15 +785,31 @@ function SignedInView() {
             onChange={(event) => {
               setDueDate(event.target.value);
               setSelectedPreset("custom");
+              clearFormError("dueDate");
             }}
             min={toDateOnly(new Date(2000, 0, 1))}
+            aria-invalid={Boolean(formErrors.dueDate)}
+            aria-describedby={formErrors.dueDate ? dueDateErrorId : undefined}
             disabled={isMutating}
           />
+          {formErrors.dueDate ? (
+            <p id={dueDateErrorId} className="text-xs font-medium text-red-600">
+              {formErrors.dueDate}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-1.5">
           <Label htmlFor={`${idPrefix}-priority`}>Priority</Label>
-          <Select value={priority} onValueChange={setPriority} disabled={isMutating}>
+          <Select
+            value={priority}
+            onValueChange={(value) => {
+              if (isPriority(value)) {
+                setPriority(value);
+              }
+            }}
+            disabled={isMutating}
+          >
             <SelectTrigger id={`${idPrefix}-priority`}>
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
@@ -690,9 +827,19 @@ function SignedInView() {
             id={`${idPrefix}-reminder-at`}
             type="datetime-local"
             value={reminderAt}
-            onChange={(event) => setReminderAt(event.target.value)}
+            onChange={(event) => {
+              setReminderAt(event.target.value);
+              clearFormError("reminderAt");
+            }}
+            aria-invalid={Boolean(formErrors.reminderAt)}
+            aria-describedby={formErrors.reminderAt ? reminderErrorId : undefined}
             disabled={isMutating}
           />
+          {formErrors.reminderAt ? (
+            <p id={reminderErrorId} className="text-xs font-medium text-red-600">
+              {formErrors.reminderAt}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-1.5">
@@ -700,10 +847,20 @@ function SignedInView() {
           <Textarea
             id={`${idPrefix}-notes`}
             value={notes}
-            onChange={(event) => setNotes(event.target.value)}
+            onChange={(event) => {
+              setNotes(event.target.value);
+              clearFormError("notes");
+            }}
             placeholder="Any extra context"
+            aria-invalid={Boolean(formErrors.notes)}
+            aria-describedby={formErrors.notes ? notesErrorId : undefined}
             disabled={isMutating}
           />
+          {formErrors.notes ? (
+            <p id={notesErrorId} className="text-xs font-medium text-red-600">
+              {formErrors.notes}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1">
@@ -738,7 +895,7 @@ function SignedInView() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_10%_8%,#dbeafe_0%,transparent_32%),radial-gradient(circle_at_90%_12%,#fce7f3_0%,transparent_28%),#f8fafc]">
-      <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-8 sm:px-6 lg:pb-10">
         <header className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Reminders</p>
@@ -747,13 +904,13 @@ function SignedInView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-sm font-bold text-slate-700">
+            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 sm:text-sm">
               Total {tasks.length}
             </Badge>
-            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-sm font-bold text-slate-700">
+            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 sm:text-sm">
               Today {todayTasks.length}
             </Badge>
-            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-sm font-bold text-slate-700">
+            <Badge variant="outline" className="bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 sm:text-sm">
               Done {completedToday}
             </Badge>
             <UserButton afterSignOutUrl="/" />
@@ -775,13 +932,6 @@ function SignedInView() {
           </Card>
         ) : null}
 
-        <div className="mb-4 lg:hidden">
-          <Button onClick={openQuickAddForCreate} className="w-full" disabled={isMutating || !hasSupabaseEnv}>
-            <Plus className="mr-1 h-4 w-4" />
-            Quick Add
-          </Button>
-        </div>
-
         <main className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <Card className="border-slate-200/90 bg-white/95 shadow-xl shadow-slate-900/5">
             <CardHeader className="pb-3">
@@ -790,7 +940,9 @@ function SignedInView() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={clearCompleted}
+                  onClick={() => {
+                    void clearCompleted();
+                  }}
                   disabled={isMutating || !tasks.some((task) => task.completed)}
                 >
                   Clear completed
@@ -811,7 +963,9 @@ function SignedInView() {
                       key={task.id}
                       task={task}
                       swipeEnabled={isMobile}
-                      onToggle={toggleTask}
+                      onToggle={(id) => {
+                        void toggleTask(id);
+                      }}
                       onEdit={startEdit}
                       onDelete={requestDelete}
                       isEditing={editingTaskId === task.id}
@@ -858,7 +1012,9 @@ function SignedInView() {
                         task={task}
                         compact
                         swipeEnabled={isMobile}
-                        onToggle={toggleTask}
+                        onToggle={(id) => {
+                          void toggleTask(id);
+                        }}
                         onEdit={startEdit}
                         onDelete={requestDelete}
                         isEditing={editingTaskId === task.id}
@@ -878,7 +1034,10 @@ function SignedInView() {
       </div>
 
       {isMobile && isQuickAddOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/45 p-3 pt-10" onClick={closeQuickAdd}>
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/45 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-10"
+          onClick={closeQuickAdd}
+        >
           <Card
             className="mx-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto border-slate-200 bg-white"
             onClick={(event) => event.stopPropagation()}
@@ -886,7 +1045,13 @@ function SignedInView() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-lg">{editingTaskId ? "Edit Reminder" : "Quick Add"}</CardTitle>
-                <Button size="icon" variant="ghost" onClick={closeQuickAdd} aria-label="Close quick add">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10"
+                  onClick={closeQuickAdd}
+                  aria-label="Close quick add"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -898,7 +1063,10 @@ function SignedInView() {
       ) : null}
 
       {deleteCandidateTask ? (
-        <div className="fixed inset-0 z-[60] bg-slate-950/45 p-4 pt-16" onClick={cancelDelete}>
+        <div
+          className="fixed inset-0 z-[60] bg-slate-950/45 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-16"
+          onClick={cancelDelete}
+        >
           <Card
             className="mx-auto w-full max-w-md border-slate-200 bg-white"
             onClick={(event) => event.stopPropagation()}
@@ -913,7 +1081,13 @@ function SignedInView() {
               <Button variant="outline" onClick={cancelDelete} disabled={isMutating}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={confirmDelete} disabled={isMutating}>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  void confirmDelete();
+                }}
+                disabled={isMutating}
+              >
                 Delete
               </Button>
             </CardContent>
@@ -922,22 +1096,22 @@ function SignedInView() {
       ) : null}
 
       <Button
-        size="icon"
         className={cn(
-          "fixed bottom-5 right-5 z-40 h-12 w-12 rounded-full shadow-xl shadow-slate-900/25 lg:hidden",
+          "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 h-12 rounded-full px-4 shadow-xl shadow-slate-900/25 lg:hidden",
           isQuickAddOpen && "hidden",
         )}
         onClick={openQuickAddForCreate}
         aria-label="Open quick add"
         disabled={isMutating || !hasSupabaseEnv}
       >
-        <Plus className="h-5 w-5" />
+        <Plus className="mr-1 h-5 w-5" />
+        Quick Add
       </Button>
     </div>
   );
 }
 
-export default function App() {
+export default function App(): JSX.Element {
   return (
     <>
       <SignedOut>

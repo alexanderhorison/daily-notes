@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ClerkProvider } from "@clerk/clerk-react";
+import { registerSW } from "virtual:pwa-register";
 
 import App from "./App";
 import "./index.css";
@@ -8,7 +9,9 @@ import "./index.css";
 const clerkPublishableKey =
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-function MissingClerkKey() {
+registerSW({ immediate: true });
+
+function MissingClerkKey(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -21,7 +24,13 @@ function MissingClerkKey() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     {clerkPublishableKey ? (
       <ClerkProvider publishableKey={clerkPublishableKey} afterSignOutUrl="/">
