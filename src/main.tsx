@@ -9,7 +9,12 @@ import "./index.css";
 const clerkPublishableKey =
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-registerSW({ immediate: true });
+registerSW({
+  immediate: false,
+  onNeedRefresh() {
+    // Keep current session stable. New version applies on manual reload.
+  },
+});
 
 function MissingClerkKey(): JSX.Element {
   return (

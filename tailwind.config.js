@@ -10,7 +10,7 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Noto Sans JP", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

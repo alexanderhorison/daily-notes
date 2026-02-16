@@ -1,19 +1,41 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --radius: 0.9rem;
+  --radius: 0.75rem;
+  --muji-bg: #f5f3ef;
+  --muji-bg-soft: #efece6;
+  --muji-card: #fcfaf6;
+  --muji-border: #d8d1c5;
+  --muji-text: #2f2b25;
+  --muji-text-muted: #6d665a;
+  --muji-primary: #4a443b;
+  --muji-danger: #a45447;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  overscroll-behavior-y: none;
 }
 
 * {
-  @apply border-slate-200;
+  border-color: var(--muji-border);
 }
 
 body {
-  @apply m-0 bg-slate-50 font-sans text-slate-900 antialiased;
+  @apply m-0 font-sans antialiased;
+  background: var(--muji-bg);
+  color: var(--muji-text);
+  -webkit-text-size-adjust: 100%;
 }
 
 .date-input-clean {
