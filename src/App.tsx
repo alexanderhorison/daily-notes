@@ -185,6 +185,20 @@ function formatReminder(dateTime: string): string {
   }).format(new Date(dateTime));
 }
 
+function formatReminderPicker(dateTime: string): string {
+  if (!dateTime) return "Pick a date";
+
+  const parsed = new Date(dateTime);
+  if (Number.isNaN(parsed.getTime())) return "Pick a date";
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parsed);
+}
+
 function formatPickerDate(dateOnly: string): string {
   if (!dateOnly) return "Pick a date";
 
@@ -490,6 +504,17 @@ function TaskRow({
 }
 
 function SignedOutView(): JSX.Element {
+  const [isMobile, setIsMobile] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setIsMobile(mediaQuery.matches);
+    sync();
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
+
   const signInAppearance = {
     variables: {
       colorPrimary: "#4a443b",
@@ -503,10 +528,11 @@ function SignedOutView(): JSX.Element {
       fontFamily: "'Noto Sans JP', 'Manrope', sans-serif",
     },
     elements: {
-      cardBox: "shadow-none",
-      card: "rounded-2xl border border-stone-300 bg-stone-50 shadow-sm",
-      headerTitle: "text-stone-900 text-2xl font-bold tracking-tight",
-      headerSubtitle: "text-stone-600",
+      rootBox: "w-full",
+      cardBox: "w-full max-w-lg mx-auto shadow-none",
+      card: "rounded-2xl border border-stone-300 bg-stone-50 shadow-sm px-2",
+      headerTitle: "hidden",
+      headerSubtitle: "hidden",
       socialButtonsBlockButton: "h-11 rounded-lg border border-stone-300 bg-stone-100 text-stone-800 shadow-none hover:bg-stone-200",
       socialButtonsBlockButtonText: "font-medium text-stone-800",
       dividerLine: "bg-stone-300",
@@ -515,8 +541,8 @@ function SignedOutView(): JSX.Element {
       formFieldInput:
         "h-11 rounded-lg border border-stone-300 bg-stone-50 text-stone-900 placeholder:text-stone-400 focus:ring-stone-400",
       formButtonPrimary: "h-11 rounded-lg bg-stone-700 text-stone-50 shadow-none hover:bg-stone-800",
-      footerActionText: "text-stone-500 hidden",
-      footerActionLink: "text-stone-800 hover:text-stone-900 hidden",
+      footerActionText: "text-stone-500",
+      footerActionLink: "text-stone-800 hover:text-stone-900",
       footer: "hidden",
       footerPages: "hidden",
       identityPreviewText: "text-stone-600",
@@ -525,9 +551,24 @@ function SignedOutView(): JSX.Element {
   } as const;
 
   return (
-    <div className="min-h-screen bg-stone-100 px-4 py-6 sm:px-6 lg:flex lg:items-center lg:py-10">
-      <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-stone-300 bg-stone-50 shadow-sm">
-        <div className="grid lg:min-h-[640px] lg:grid-cols-[0.95fr_1.05fr]">
+    <div
+      className={cn(
+        "min-h-screen bg-stone-100",
+        isMobile ? "px-0 py-0" : "px-4 py-6 sm:px-6 lg:flex lg:items-center lg:py-10",
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto w-full overflow-hidden border border-stone-300 bg-stone-50 shadow-sm",
+          isMobile ? "h-[100dvh] max-w-none rounded-none border-0" : "max-w-6xl rounded-2xl",
+        )}
+      >
+        <div
+          className={cn(
+            "grid",
+            isMobile ? "h-full" : "lg:min-h-[620px] lg:grid-cols-[minmax(360px,1fr)_minmax(420px,1fr)]",
+          )}
+        >
           <section className="hidden border-r border-stone-300 bg-[#f1ece2] p-8 lg:flex lg:flex-col lg:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Reminders</p>
@@ -537,22 +578,86 @@ function SignedOutView(): JSX.Element {
               </p>
             </div>
 
+            <div className="flex flex-1 items-center justify-center">
+              <svg
+                viewBox="0 0 200 120"
+                className="h-32 w-52 text-stone-400"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <rect x="12" y="16" width="176" height="88" rx="14" className="stroke-[1.5] text-stone-300" />
+                <rect x="28" y="36" width="80" height="14" rx="6" />
+                <rect x="28" y="58" width="52" height="12" rx="6" className="text-stone-500" />
+                <rect x="28" y="76" width="40" height="10" rx="5" className="text-stone-500" />
+                <circle cx="150" cy="46" r="10" />
+                <path d="M144 72h24" className="text-stone-500" />
+                <path d="M136 86h32" className="text-stone-500" />
+              </svg>
+            </div>
+
             <div className="rounded-xl border border-stone-300 bg-stone-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Daily Focus</p>
               <p className="mt-2 text-sm text-stone-700">Plan today, keep upcoming in view, and stay calm.</p>
             </div>
           </section>
 
-          <section className="flex items-center justify-center p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-md">
-              <div className="mb-4 text-center lg:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Reminders</p>
-                <h1 className="mt-2 text-2xl font-bold tracking-tight text-stone-900">Welcome back</h1>
-                <p className="mt-1 text-sm text-stone-600">Sign in to continue your daily focus.</p>
-              </div>
+          <section
+            className={cn(
+              "flex items-center justify-center",
+              isMobile ? "h-full p-5" : "p-4 sm:p-6 lg:p-8",
+            )}
+          >
+            {isMobile && showIntro ? (
+              <div className="w-full max-w-md space-y-5 text-center">
+                <div className="rounded-2xl border border-stone-200 bg-[#f1ece2] px-4 py-6 text-left shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Reminders</p>
+                  <h2 className="mt-3 text-2xl font-bold leading-tight text-stone-900">Quietly organize what matters today.</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-stone-600">
+                    A practical, clean space for your daily reminders with minimal visual noise.
+                  </p>
+                  <div className="mt-5 flex justify-center">
+                    <svg
+                      viewBox="0 0 200 120"
+                      className="h-24 w-40 text-stone-400"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    >
+                      <rect x="12" y="16" width="176" height="88" rx="14" className="stroke-[1.5] text-stone-300" />
+                      <rect x="28" y="36" width="80" height="14" rx="6" />
+                      <rect x="28" y="58" width="52" height="12" rx="6" className="text-stone-500" />
+                      <rect x="28" y="76" width="40" height="10" rx="5" className="text-stone-500" />
+                      <circle cx="150" cy="46" r="10" />
+                      <path d="M144 72h24" className="text-stone-500" />
+                      <path d="M136 86h32" className="text-stone-500" />
+                    </svg>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">Daily Focus</p>
+                    <p className="mt-1 text-sm text-stone-700">Plan today, keep upcoming in view, and stay calm.</p>
+                  </div>
+                </div>
 
-              <SignIn routing="virtual" appearance={signInAppearance} />
-            </div>
+                <Button className="w-full" onClick={() => setShowIntro(false)}>
+                  Next
+                </Button>
+              </div>
+            ) : (
+              <div className={cn("w-full space-y-4 text-center", isMobile ? "max-w-full px-4" : "max-w-md")}>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">Reminders</p>
+                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-stone-900">Sign in to continue</h1>
+                  <p className="mt-1 text-sm text-stone-600">Use your account to keep today and upcoming tasks in sync.</p>
+                </div>
+
+                <SignIn routing="virtual" appearance={signInAppearance} />
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -590,6 +695,8 @@ function SignedInView(): JSX.Element {
   const [isDueDatePickerOpen, setIsDueDatePickerOpen] = useState(false);
   const [priority, setPriority] = useState<Priority>("medium");
   const [reminderAt, setReminderAt] = useState("");
+  const [reminderMonth, setReminderMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [isReminderPickerOpen, setIsReminderPickerOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const pullStartRef = useRef<number | null>(null);
@@ -598,6 +705,7 @@ function SignedInView(): JSX.Element {
   const quickAddCloseTimerRef = useRef<number | null>(null);
   const quickAddScrollRef = useRef<HTMLDivElement | null>(null);
   const dueDatePickerRef = useRef<HTMLDivElement | null>(null);
+  const reminderPickerRef = useRef<HTMLDivElement | null>(null);
   const loadedUserRef = useRef<string | null>(null);
 
   function clearFormError(field: FormErrorKey): void {
@@ -652,6 +760,7 @@ function SignedInView(): JSX.Element {
   useEffect(() => {
     if (isQuickAddOpen) return;
     setIsDueDatePickerOpen(false);
+    setIsReminderPickerOpen(false);
   }, [isQuickAddOpen]);
 
   useEffect(() => {
@@ -672,6 +781,25 @@ function SignedInView(): JSX.Element {
       document.removeEventListener("touchstart", handleOutsidePointer);
     };
   }, [isDueDatePickerOpen]);
+
+  useEffect(() => {
+    if (!isReminderPickerOpen) return;
+
+    function handleOutsidePointer(event: MouseEvent | globalThis.TouchEvent): void {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!reminderPickerRef.current?.contains(target)) {
+        setIsReminderPickerOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsidePointer);
+    document.addEventListener("touchstart", handleOutsidePointer);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsidePointer);
+      document.removeEventListener("touchstart", handleOutsidePointer);
+    };
+  }, [isReminderPickerOpen]);
 
   useEffect(() => {
     if (!hasSupabaseEnv) {
@@ -843,16 +971,64 @@ function SignedInView(): JSX.Element {
   }
 
   function applyReminderPreset(hour: number, minute: number): void {
-    if (!dueDate) return;
-
-    const hourPart = String(hour).padStart(2, "0");
-    const minutePart = String(minute).padStart(2, "0");
-    setReminderAt(`${dueDate}T${hourPart}:${minutePart}`);
+    const base = reminderAt ? new Date(reminderAt) : new Date();
+    base.setHours(hour, minute, 0, 0);
+    const datePart = reminderAt ? toDateOnly(base) : toDateOnly(new Date());
+    const timePart = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    setReminderAt(`${datePart}T${timePart}`);
+    setReminderMonth(new Date(base.getFullYear(), base.getMonth(), 1));
     clearFormError("reminderAt");
+  }
+
+  function openReminderPicker(): void {
+    const targetDate = reminderAt ? new Date(reminderAt) : new Date();
+    if (!Number.isNaN(targetDate.getTime())) {
+      setReminderMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    }
+    setIsReminderPickerOpen((previous) => !previous);
+  }
+
+  function moveReminderMonth(monthDelta: number): void {
+    setReminderMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + monthDelta, 1));
+  }
+
+  function pickReminderDate(date: Date): void {
+    const dateOnly = toDateOnly(date);
+    const timePart = reminderAt && reminderAt.includes("T") ? reminderAt.slice(11, 16) : "09:00";
+    setReminderAt(`${dateOnly}T${timePart}`);
+    clearFormError("reminderAt");
+  }
+
+  function changeReminderTime(value: string): void {
+    const dateOnly = reminderAt ? reminderAt.slice(0, 10) : toDateOnly(new Date());
+    const timePart = value || "09:00";
+    setReminderAt(`${dateOnly}T${timePart}`);
+    clearFormError("reminderAt");
+  }
+
+  function changeReminderHour(hour: string): void {
+    if (!hour) return;
+    const current = reminderAt && reminderAt.includes("T") ? reminderAt.slice(11, 16) : "09:00";
+    const minute = current.split(":")[1] ?? "00";
+    changeReminderTime(`${hour}:${minute}`);
+  }
+
+  function changeReminderMinute(minute: string): void {
+    if (!minute) return;
+    const current = reminderAt && reminderAt.includes("T") ? reminderAt.slice(11, 16) : "09:00";
+    const hour = current.split(":")[0] ?? "09";
+    changeReminderTime(`${hour}:${minute}`);
   }
 
   const selectedDueDate = useMemo(() => parseDateOnly(dueDate), [dueDate]);
   const calendarCells = useMemo(() => buildCalendarGrid(dueDateMonth), [dueDateMonth]);
+  const selectedReminderDate = useMemo(() => {
+    if (!reminderAt) return null;
+    const parsed = new Date(reminderAt);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  }, [reminderAt]);
+  const reminderCalendarCells = useMemo(() => buildCalendarGrid(reminderMonth), [reminderMonth]);
 
   function moveDueDateMonth(monthDelta: number): void {
     setDueDateMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + monthDelta, 1));
@@ -880,6 +1056,7 @@ function SignedInView(): JSX.Element {
     setTitle("");
     setPriority("medium");
     setReminderAt("");
+    setReminderMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
     setNotes("");
     setSelectedPreset("today");
     setDueDate(dateForPreset("today"));
@@ -1345,18 +1522,167 @@ function SignedInView(): JSX.Element {
               Clear
             </Button>
           </div>
-          <Input
-            id={`${idPrefix}-reminder-at`}
-            type="datetime-local"
-            value={reminderAt}
-            onChange={(event) => {
-              setReminderAt(event.target.value);
-              clearFormError("reminderAt");
-            }}
-            aria-invalid={Boolean(formErrors.reminderAt)}
-            aria-describedby={formErrors.reminderAt ? reminderErrorId : undefined}
-            disabled={isMutating}
-          />
+          <div className="relative">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full justify-between rounded-xl px-3 text-left font-medium text-stone-900"
+              onClick={openReminderPicker}
+              aria-invalid={Boolean(formErrors.reminderAt)}
+              aria-describedby={formErrors.reminderAt ? reminderErrorId : undefined}
+              disabled={isMutating}
+            >
+              <span>{formatReminderPicker(reminderAt)}</span>
+              <Calendar className="h-4 w-4 text-stone-500" />
+            </Button>
+
+            {isReminderPickerOpen ? (
+              <div
+                className="absolute left-0 right-0 z-30 mt-2 rounded-xl border border-stone-300 bg-stone-50 shadow-sm"
+                ref={reminderPickerRef}
+              >
+                <div className="flex items-center justify-between border-b border-stone-100 px-3 py-2">
+                  <p className="text-sm font-semibold text-stone-800">{formatMonthHeading(reminderMonth)}</p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => moveReminderMonth(-1)}
+                      aria-label="Previous month"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => moveReminderMonth(1)}
+                      aria-label="Next month"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-7 px-2 pt-2 text-center text-[11px] font-semibold text-stone-500">
+                  {calendarWeekdays.map((weekday) => (
+                    <span key={weekday} className="py-1">
+                      {weekday}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1 p-2">
+                  {reminderCalendarCells.map((cell) => {
+                    const isSelected = selectedReminderDate ? isSameDay(cell.date, selectedReminderDate) : false;
+                    const isToday = isSameDay(cell.date, new Date());
+
+                    return (
+                      <button
+                        key={cell.key}
+                        type="button"
+                        className={cn(
+                          "h-9 rounded-lg text-sm font-medium transition-colors",
+                          cell.inMonth ? "text-stone-800" : "text-stone-400",
+                          !isSelected && "hover:bg-stone-100",
+                          isToday && !isSelected && "border border-stone-300",
+                          isSelected && "bg-stone-700 text-stone-50 shadow-sm",
+                        )}
+                        onClick={() => pickReminderDate(cell.date)}
+                      >
+                        {cell.date.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between border-t border-stone-100 px-3 py-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => pickReminderDate(new Date())}>
+                    Today
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const tomorrow = parseDateOnly(dateForPreset("tomorrow")) ?? new Date();
+                        pickReminderDate(tomorrow);
+                      }}
+                    >
+                      Tomorrow
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const nextWeek = parseDateOnly(dateForPreset("next-week")) ?? new Date();
+                        pickReminderDate(nextWeek);
+                      }}
+                    >
+                      Next Week
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 border-t border-stone-100 px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="reminder-time" className="text-xs font-semibold text-stone-600">
+                      Time
+                    </Label>
+                    <input
+                      id="reminder-time"
+                      type="time"
+                      className="h-9 rounded-lg border border-stone-300 bg-white px-2 text-sm font-medium text-stone-800 shadow-inner focus:outline-none focus:ring-2 focus:ring-stone-500/50"
+                      value={reminderAt ? reminderAt.slice(11, 16) : ""}
+                      onChange={(event) => changeReminderTime(event.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex gap-1">
+                      {["07", "09", "12", "15", "18", "21"].map((hour) => (
+                        <Button
+                          key={hour}
+                          type="button"
+                          variant={reminderAt.slice(11, 13) === hour ? "default" : "outline"}
+                          size="xs"
+                          onClick={() => changeReminderHour(hour)}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {`${hour}:00`}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      {["00", "15", "30", "45"].map((minute) => (
+                        <Button
+                          key={minute}
+                          type="button"
+                          variant={reminderAt.slice(14, 16) === minute ? "default" : "outline"}
+                          size="xs"
+                          onClick={() => changeReminderMinute(minute)}
+                          className="h-8 px-2 text-xs"
+                        >
+                          :{minute}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="button" size="sm" onClick={() => setIsReminderPickerOpen(false)}>
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
           {formErrors.reminderAt ? (
             <p id={reminderErrorId} className="text-xs font-medium text-rose-700">
               {formErrors.reminderAt}
