@@ -3,7 +3,6 @@
 A reminders web app focused on **Today**, built with **React + Vite + Tailwind + shadcn-style UI**.
 
 This version is configured for:
-- **Clerk** authentication
 - **Supabase** backend with SQL migration files
 - **Docker** + **Docker Compose**
 - **GitHub Actions CI**
@@ -12,7 +11,7 @@ This version is configured for:
 
 - Frontend: React, Vite, Tailwind CSS, TypeScript (strict)
 - UI: shadcn-style components + Radix primitives
-- Auth: Clerk (`@clerk/clerk-react`)
+- Auth: local app password gate (`Suthiono11`)
 - Backend data: Supabase (`@supabase/supabase-js`)
 - Validation: Zod (`zod`)
 
@@ -37,28 +36,14 @@ cp .env.example .env
 
 Set values in `.env`:
 
-- `VITE_CLERK_PUBLISHABLE_KEY`
-- `VITE_CLERK_JWT_TEMPLATE` (recommended: `supabase`)
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY` (recommended)
 - `VITE_SUPABASE_ANON_KEY` (legacy fallback)
 
-## 2) Clerk + Supabase Auth Setup
-
-### Clerk
-
-1. Create your Clerk application.
-2. Enable Supabase integration in Clerk and Supabase third-party auth.
-3. Create a JWT template in Clerk (name `supabase`) with claims:
-   - `aud: "authenticated"`
-   - `role: "authenticated"`
-   - `sub` (default Clerk subject)
-
-### Supabase
+## 2) Supabase Setup
 
 1. Create a Supabase project.
-2. In Supabase Auth settings, enable Clerk as third-party auth (set your Clerk domain).
-3. Use project URL + publishable key in `.env`.
+2. Use project URL + publishable key in `.env`.
 
 ## 3) Database Migrations
 
@@ -76,7 +61,7 @@ supabase db push
 
 The migration creates:
 - `public.tasks`
-- RLS policies scoped by Clerk user id (`auth.jwt()->>'sub'`)
+- row-level policies for single-user mode (`user_id = 'app_user'`)
 - indexes and update trigger
 
 ## 4) Run Locally
@@ -156,7 +141,6 @@ Workflow:
 
 Set these repository secrets so CI can build:
 
-- `VITE_CLERK_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_ANON_KEY`
