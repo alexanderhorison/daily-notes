@@ -8,7 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["icons/icon.svg", "icons/apple-touch-icon.png"],
+      includeAssets: [
+        "icons/icon.svg",
+        "icons/icon-192.png",
+        "icons/icon-512.png",
+        "icons/icon-512-maskable.png",
+        "icons/apple-touch-icon.png",
+        "apple-touch-icon.png",
+      ],
       manifest: {
         id: "/",
         name: "Today Reminders",
@@ -26,6 +33,12 @@ export default defineConfig({
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
+          },
+          {
+            src: "/icons/icon-192-maskable.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "/icons/icon-512.png",

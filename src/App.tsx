@@ -10,6 +10,7 @@ import {
 import {
   Calendar,
   CalendarDays,
+  CheckCircle2,
   CircleDot,
   Clock3,
   ChevronLeft,
@@ -22,6 +23,7 @@ import {
   Sunrise,
   Shield,
   Settings,
+  Trash2,
   X,
   Moon,
   type LucideIcon,
@@ -975,32 +977,28 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
       {/* Due date modal */}
       {isDueDateModalOpen ? (
         <div
-          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/35 p-4"
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
           onClick={() => setIsDueDateModalOpen(false)}
         >
-          <Card className="mx-auto w-full max-w-[390px] rounded-2xl border-gray-300 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <CardContent className="max-h-[85vh] overflow-y-auto p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">Pick due date</p>
-                  <p className="text-sm text-gray-500">{TaskDateService.formatMonthHeading(dueDateMonth)}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsDueDateModalOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
+          <Card className="mx-auto w-full max-w-[370px] rounded-2xl border-gray-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <CardContent className="max-h-[85vh] overflow-y-auto p-5">
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                <Calendar className="h-8 w-8 text-red-500" strokeWidth={1.9} />
               </div>
+              <p className="text-center text-2xl font-bold text-gray-900">Pick due date</p>
+              <p className="mt-1.5 text-center text-sm text-gray-500">{TaskDateService.formatMonthHeading(dueDateMonth)}</p>
 
-              <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-300 bg-gray-50 px-2 py-1">
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveDueDateMonth(-1)}>
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-300 bg-gray-50 px-2 py-1">
+                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => moveDueDateMonth(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <p className="text-sm font-semibold text-gray-800">{TaskDateService.formatMonthHeading(dueDateMonth)}</p>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveDueDateMonth(1)}>
+                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => moveDueDateMonth(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="mt-3 grid grid-cols-7 text-center text-[11px] font-semibold text-gray-400">
+              <div className="mt-4 grid grid-cols-7 text-center text-[11px] font-semibold text-gray-400">
                 {TaskDateService.calendarWeekdays.map((day) => (
                   <span key={day} className="py-1">{day}</span>
                 ))}
@@ -1017,8 +1015,8 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                         "h-9 rounded-lg text-sm font-medium transition-colors",
                         cell.inMonth ? "text-gray-800" : "text-gray-300",
                         !isSelected && "hover:bg-gray-100",
-                        isToday && !isSelected && "border border-gray-300",
-                        isSelected && "bg-gray-900 text-white shadow-sm",
+                        isToday && !isSelected && "border border-red-200",
+                        isSelected && "bg-red-500 text-white shadow-sm",
                       )}
                       onClick={() => pickDueDate(cell.date)}
                     >
@@ -1028,13 +1026,13 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                 })}
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => pickDueDate(new Date())}>Today</Button>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <Button type="button" variant="outline" size="sm" className="h-10 rounded-xl" onClick={() => pickDueDate(new Date())}>Today</Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="rounded-lg"
+                  className="h-10 rounded-xl"
                   onClick={() => {
                     const d = TaskDateService.parseDateOnly(TaskDateService.dateForPreset("tomorrow")) ?? new Date();
                     pickDueDate(d);
@@ -1046,7 +1044,7 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="rounded-lg"
+                  className="h-10 rounded-xl"
                   onClick={() => {
                     const d = TaskDateService.parseDateOnly(TaskDateService.dateForPreset("next-week")) ?? new Date();
                     pickDueDate(d);
@@ -1054,8 +1052,14 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                 >
                   Next Week
                 </Button>
-                <Button type="button" className="ml-auto rounded-lg px-4" size="sm" onClick={() => setIsDueDateModalOpen(false)}>
+              </div>
+
+              <div className="mt-4 grid gap-2">
+                <Button type="button" className="h-11 w-full rounded-xl text-sm font-semibold" onClick={() => setIsDueDateModalOpen(false)}>
                   Done
+                </Button>
+                <Button type="button" variant="outline" className="h-11 w-full rounded-xl text-sm font-medium" onClick={() => setIsDueDateModalOpen(false)}>
+                  Cancel
                 </Button>
               </div>
             </CardContent>
@@ -1066,24 +1070,20 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
       {/* Reminder time modal */}
       {isReminderTimeModalOpen ? (
         <div
-          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/35 p-4"
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
           onClick={() => setIsReminderTimeModalOpen(false)}
         >
-          <Card className="mx-auto w-full max-w-[390px] rounded-2xl border-gray-300 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <CardContent className="max-h-[85vh] overflow-y-auto p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">Pick reminder time</p>
-                  <p className="mt-0.5 text-sm text-gray-500">for {TaskDateService.formatPickerDate(dueDate)}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsReminderTimeModalOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
+          <Card className="mx-auto w-full max-w-[370px] rounded-2xl border-gray-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <CardContent className="max-h-[85vh] overflow-y-auto p-5">
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                <Clock3 className="h-8 w-8 text-red-500" strokeWidth={1.9} />
               </div>
+              <p className="text-center text-2xl font-bold text-gray-900">Pick reminder time</p>
+              <p className="mt-1.5 text-center text-sm text-gray-500">for {TaskDateService.formatPickerDate(dueDate)}</p>
 
               <input
                 type="time"
-                className="mt-3 h-11 w-full rounded-xl border border-gray-300 bg-gray-50 px-3 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="mt-4 h-11 w-full rounded-xl border border-gray-300 bg-gray-50 px-3 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-200"
                 value={reminderAt ? reminderAt.slice(11, 16) : ""}
                 onChange={(e) => changeReminderTime(e.target.value)}
               />
@@ -1096,7 +1096,7 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                     variant={reminderAt.slice(11, 13) === h ? "default" : "outline"}
                     onClick={() => changeReminderHour(h)}
                     size="sm"
-                    className="h-9 rounded-lg text-sm"
+                    className="h-10 rounded-xl text-sm font-semibold"
                   >
                     {`${h}:00`}
                   </Button>
@@ -1111,18 +1111,30 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                     variant={reminderAt.slice(14, 16) === m ? "default" : "outline"}
                     onClick={() => changeReminderMinute(m)}
                     size="sm"
-                    className="h-9 rounded-lg text-sm"
+                    className="h-10 rounded-xl text-sm font-semibold"
                   >
                     :{m}
                   </Button>
                 ))}
               </div>
 
-              <div className="mt-4 flex justify-between gap-2">
+              <div className="mt-4 grid gap-2">
+                <Button type="button" className="h-11 w-full rounded-xl text-sm font-semibold" onClick={() => setIsReminderTimeModalOpen(false)}>
+                  Done
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-xl text-sm font-medium"
+                    onClick={() => setIsReminderTimeModalOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-lg"
+                  className="h-10 rounded-xl text-sm font-medium"
                   onClick={() => {
                     setReminderAt("");
                     clearFormError("reminderAt");
@@ -1130,9 +1142,7 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
                 >
                   Clear
                 </Button>
-                <Button type="button" className="rounded-lg px-4" onClick={() => setIsReminderTimeModalOpen(false)}>
-                  Done
-                </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1141,29 +1151,25 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
 
       {/* Delete confirmation */}
       {completeCandidateTask ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 p-4" onClick={cancelMarkDone}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]" onClick={cancelMarkDone}>
           <Card
-            className="mx-auto w-full max-w-[390px] rounded-2xl border-gray-300 bg-white shadow-xl"
+            className="mx-auto w-full max-w-[370px] rounded-2xl border-gray-200 bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">Mark as done?</p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    <span className="font-medium text-gray-700">{completeCandidateTask.title}</span> will move to completed tasks.
-                  </p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={cancelMarkDone} disabled={isMutating}>
-                  <X className="h-4 w-4" />
-                </Button>
+            <CardContent className="p-5">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+                <CheckCircle2 className="h-8 w-8 text-green-600" strokeWidth={1.9} />
               </div>
-              <div className="mt-4 flex gap-2">
-                <Button variant="outline" className="h-10 flex-1 rounded-lg" onClick={cancelMarkDone} disabled={isMutating}>
-                  Cancel
-                </Button>
-                <Button type="button" className="h-10 flex-1 rounded-lg" onClick={() => void confirmMarkDone()} disabled={isMutating}>
+              <p className="text-center text-2xl font-bold text-gray-900">Mark as done?</p>
+              <p className="mt-1.5 text-center text-sm text-gray-500">
+                <span className="font-semibold text-gray-700">{completeCandidateTask.title}</span> will be moved to completed tasks.
+              </p>
+              <div className="mt-5 grid gap-2">
+                <Button type="button" className="h-11 w-full rounded-xl text-sm font-semibold" onClick={() => void confirmMarkDone()} disabled={isMutating}>
                   Mark done
+                </Button>
+                <Button type="button" variant="outline" className="h-11 w-full rounded-xl text-sm font-medium" onClick={cancelMarkDone} disabled={isMutating}>
+                  Cancel
                 </Button>
               </div>
             </CardContent>
@@ -1173,35 +1179,37 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
 
       {/* Delete confirmation */}
       {deleteCandidateTask ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 p-4" onClick={cancelDelete}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]" onClick={cancelDelete}>
           <Card
-            className="mx-auto w-full max-w-[390px] rounded-2xl border-gray-300 bg-white shadow-xl"
+            className="mx-auto w-full max-w-[370px] rounded-2xl border-gray-200 bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">Delete reminder?</p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    <span className="font-medium text-gray-700">{deleteCandidateTask.title}</span> will be permanently removed.
-                  </p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={cancelDelete} disabled={isMutating}>
-                  <X className="h-4 w-4" />
-                </Button>
+            <CardContent className="p-5">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                <Trash2 className="h-8 w-8 text-red-500" strokeWidth={1.9} />
               </div>
-              <div className="mt-4 flex gap-2">
-                <Button variant="outline" className="h-10 flex-1 rounded-lg" onClick={cancelDelete} disabled={isMutating}>
-                  Cancel
-                </Button>
+              <p className="text-center text-2xl font-bold text-gray-900">Delete reminder?</p>
+              <p className="mt-1.5 text-center text-sm text-gray-500">
+                <span className="font-semibold text-gray-700">{deleteCandidateTask.title}</span> will be permanently removed.
+              </p>
+              <div className="mt-5 grid gap-2">
                 <Button
                   type="button"
                   variant="destructive"
-                  className="h-10 flex-1 rounded-lg"
+                  className="h-11 w-full rounded-xl text-sm font-semibold"
                   onClick={() => void confirmDelete()}
                   disabled={isMutating}
                 >
                   Delete
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full rounded-xl text-sm font-medium"
+                  onClick={cancelDelete}
+                  disabled={isMutating}
+                >
+                  Cancel
                 </Button>
               </div>
             </CardContent>
