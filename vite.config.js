@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
+      manifestFilename: "manifest-v2.webmanifest",
       includeAssets: [
         "icons/icon.svg",
         "icons/icon-192.png",
@@ -22,7 +23,7 @@ export default defineConfig({
         short_name: "Reminders",
         description: "A clean reminders app focused on what matters today.",
         theme_color: "#ffffff",
-        background_color: "#f5f3ef",
+        background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
