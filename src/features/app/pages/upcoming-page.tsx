@@ -20,7 +20,7 @@ export function UpcomingPage({
   taskRowActionProps,
 }: UpcomingPageProps): JSX.Element {
   return (
-    <div className="px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className="px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <PageHeader title="Upcoming" description="Tasks due after today" Icon={CalendarDays} />
 
       {errorMessage ? (

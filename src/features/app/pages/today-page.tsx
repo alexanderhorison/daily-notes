@@ -30,7 +30,7 @@ export function TodayPage({
   taskRowActionProps,
 }: TodayPageProps): JSX.Element {
   return (
-    <div className="px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className="px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <PageHeader title="Today" description={headerDescription} Icon={Home} />
 
       <div className="mb-5 grid grid-cols-2 gap-3">

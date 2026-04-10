@@ -9,7 +9,7 @@ type AddReminderPageProps = {
 
 export function AddReminderPage({ isEditing, form }: AddReminderPageProps): JSX.Element {
   return (
-    <div className="px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className="px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <PageHeader
         title={isEditing ? "Edit Reminder" : "Add Reminder"}
         description={isEditing ? "Update your reminder details" : "Create and schedule a new task"}

@@ -26,7 +26,7 @@ export function SettingsPage({
   hasSupabaseEnv,
 }: SettingsPageProps): JSX.Element {
   return (
-    <div className="px-4 pt-6 pb-[calc(11rem+env(safe-area-inset-bottom))]">
+    <div className="px-4 pb-[calc(11rem+env(safe-area-inset-bottom))]">
       <PageHeader title="Settings" description="Manage your account" Icon={Settings as LucideIcon} />
 
       <div className="grid gap-3">

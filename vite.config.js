@@ -21,7 +21,7 @@ export default defineConfig({
         name: "Today Reminders",
         short_name: "Reminders",
         description: "A clean reminders app focused on what matters today.",
-        theme_color: "#4a443b",
+        theme_color: "#ffffff",
         background_color: "#f5f3ef",
         display: "standalone",
         orientation: "portrait",
