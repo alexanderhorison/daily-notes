@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   Calendar,
-  CalendarDays,
   CheckCircle2,
   CircleDot,
   Clock3,
@@ -33,7 +32,6 @@ import { AddReminderPage } from "@/features/app/pages/add-reminder-page";
 import { LoginView } from "@/features/app/components/login-view";
 import { SettingsPage } from "@/features/app/pages/settings-page";
 import { TodayPage } from "@/features/app/pages/today-page";
-import { UpcomingPage } from "@/features/app/pages/upcoming-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,7 +54,7 @@ const reminderScanIntervalMs = 30 * 1000;
 const profileName = "Irene Suthiono";
 const profileRole = "Senior Premier Banking Manager";
 
-type ActiveTab = "today" | "upcoming" | "add" | "settings";
+type ActiveTab = "today" | "add" | "settings";
 type ToastState = {
   variant: "success" | "error";
   title: string;
@@ -851,18 +849,6 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
       );
     }
 
-    if (activeTab === "upcoming") {
-      return (
-        <UpcomingPage
-          errorMessage={errorMessage}
-          isLoadingTasks={isLoadingTasks}
-          upcomingTasks={upcomingTasks}
-          editingTaskId={editingTaskId}
-          taskRowActionProps={taskListProps}
-        />
-      );
-    }
-
     if (activeTab === "add") {
       return (
         <AddReminderPage isEditing={Boolean(editingTaskId)} form={renderQuickAddForm({ inline: true })} />
@@ -874,6 +860,7 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
       <TodayPage
         headerDescription={TaskDateService.formatFullDate()}
         todayTasks={todayTasks}
+        upcomingTasks={upcomingTasks}
         completedToday={completedToday}
         isLoadingTasks={isLoadingTasks}
         errorMessage={errorMessage}
@@ -1223,7 +1210,6 @@ function MainApp({ onLogout }: { onLogout: () => void }): JSX.Element {
           {(
             [
               { id: "today", label: "Today", Icon: Home },
-              { id: "upcoming", label: "Upcoming", Icon: CalendarDays },
               { id: "add", label: "Add", Icon: Plus },
               { id: "settings", label: "Settings", Icon: Settings },
             ] as const

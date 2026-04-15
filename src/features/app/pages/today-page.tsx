@@ -7,6 +7,7 @@ import type { Task } from "@/lib/task-types";
 type TodayPageProps = {
   headerDescription: string;
   todayTasks: Task[];
+  upcomingTasks: Task[];
   completedToday: number;
   isLoadingTasks: boolean;
   errorMessage: string;
@@ -20,6 +21,7 @@ type TodayPageProps = {
 export function TodayPage({
   headerDescription,
   todayTasks,
+  upcomingTasks,
   completedToday,
   isLoadingTasks,
   errorMessage,
@@ -79,6 +81,17 @@ export function TodayPage({
           <p className="mt-1 text-sm text-gray-400">Tap Add to create your first reminder.</p>
         </div>
       )}
+
+      {upcomingTasks.length > 0 ? (
+        <>
+          <h2 className="mb-3 mt-6 text-lg font-bold text-gray-900">Upcoming</h2>
+          <ul className="grid gap-2">
+            {upcomingTasks.map((task) => (
+              <TaskRow key={task.id} task={task} isEditing={editingTaskId === task.id} {...taskRowActionProps} />
+            ))}
+          </ul>
+        </>
+      ) : null}
     </div>
   );
 }
